@@ -1,0 +1,12 @@
+{
+  "require": {
+	"php": "^7.1",
+	"psr/http-message": "*",
+	"zendframework/zend-diactoros": "*",
+	"zendframework/zend-httphandlerrunner": "*",
+	"ext-json": "*",
+	"ext-curl": "*",
+	"tcb13/thunder-tus-php": "*"
+  },
+  "minimum-stability": "dev"
+}

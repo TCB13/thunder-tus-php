@@ -1,0 +1,23 @@
+{
+  "name": "tcb13/thunder-tus-php",
+  "type": "library",
+  "description": "",
+  "require": {
+	"php": "^7.1",
+	"psr/http-message": "*",
+	"ext-json": "*",
+	"ext-curl": "*"
+  },
+  "authors": [
+	{
+	  "name": "TCB13",
+	  "email": "tadeu.bento@iklive.eu"
+	}
+  ],
+  "minimum-stability": "dev",
+  "autoload": {
+	"psr-4": {
+	  "ThunderTUS\\": "src/"
+	}
+  }
+}
