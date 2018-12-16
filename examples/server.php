@@ -10,7 +10,7 @@ $request = Zend\Diactoros\ServerRequestFactory::fromGlobals();
 $response = new Zend\Diactoros\Response();
 
 $server = new ThunderTUS\Server($request, $response);
-$server->setUploadDir(__DIR__ . DIRECTORY_SEPARATOR);
+$server->setUploadDir(__DIR__ . DIRECTORY_SEPARATOR . "uploads");
 $server->setApiPath("/");
 $server->handle();
 $response = $server->getResponse();
