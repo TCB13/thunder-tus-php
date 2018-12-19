@@ -8,13 +8,6 @@ class Server
 {
 
 	const PROTOCOL_VERSION    = "1.0.0";
-	const CHECKSUM_ALGORITHMS = [
-		"crc32",
-		"md5",
-		"sha1",
-		"sha256",
-		"sha512",
-	];
 
 	protected $uploadMaxFileSize = 50000000;
 	protected $uploadDir = null;
@@ -329,7 +322,7 @@ class Server
 			return false;
 
 		$value = \explode(" ", $value);
-		if (empty($value) || !\in_array($value[0], self::CHECKSUM_ALGORITHMS) || !isset($value[1]))
+		if (empty($value) || !\in_array($value[0], hash_algos()) || !isset($value[1]))
 			return false;
 
 		$checksum            = new \stdClass();
