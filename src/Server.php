@@ -91,10 +91,8 @@ class Server
 		$this->file      = $this->uploadDir . $this->file;
 
 		// Replicate the input stream so we can control its pointer
-		$inStream     = fopen($this->streamURI, "r");
-		$this->stream = fopen("php://temp", "w+");
-		stream_copy_to_stream($inStream, $this->stream);
-		fclose($inStream);
+		$this->stream = fopen('php://temp', 'w+');
+		stream_copy_to_stream(fopen($this->streamURI, 'r'), $this->stream);
 		rewind($this->stream);
 
 		$this->response = $this->$method();
@@ -121,9 +119,8 @@ class Server
 
 		// Get the total upload expected length
 		$length = $this->request->getHeaderLine("Upload-Length");
-		if ($length === "")
-			$length = 0; // @TODO: Some PSR7 implementations discard headers set to 0. The TUS protocol demands we sent HTTP 400.
-			//return $this->response->withStatus(400);
+		if ($length === "") // Note: Some PSR7 implementations discard headers set to 0.
+			return $this->response->withStatus(400);
 
 		// Check for the size of the entire upload
 		if ($this->uploadMaxFileSize > 0 && $this->uploadMaxFileSize < $length)
@@ -201,9 +198,8 @@ class Server
 	{
 
 		$offset = $this->request->getHeaderLine("Upload-Offset");
-		if ($offset === "")
-			$offset = 0; // @TODO: Some PSR7 implementations discard headers set to 0. The TUS protocol demands we sent HTTP 400.
-			//return $this->response->withStatus(400);
+		if ($offset === "") // Note: Some PSR7 implementations discard headers set to 0.
+			return $this->response->withStatus(400);
 
 		// Check if the server supports the proposed checksum algorithm
 		$checksum = self::parseChecksum($this->request->getHeaderLine("Upload-Checksum"));
