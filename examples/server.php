@@ -1,4 +1,7 @@
 <?php
+
+use ThunderTUS\Store\FileSystem;
+
 include "vendor/autoload.php";
 
 /*
@@ -9,8 +12,9 @@ include "vendor/autoload.php";
 $request = Zend\Diactoros\ServerRequestFactory::fromGlobals();
 $response = new Zend\Diactoros\Response();
 
+$backend = new FileSystem(__DIR__ . DIRECTORY_SEPARATOR . "uploads");
 $server = new ThunderTUS\Server($request, $response);
-$server->setUploadDir(__DIR__ . DIRECTORY_SEPARATOR . "uploads");
+$server->setStorageBackend($backend);
 $server->setApiPath("/");
 $server->handle();
 $response = $server->getResponse();

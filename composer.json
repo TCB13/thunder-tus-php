@@ -3,7 +3,7 @@
   "type": "library",
   "description": "",
   "require": {
-	"php": "^7.1",
+	"php": "^7.3",
 	"psr/http-message": "*",
 	"ext-json": "*",
 	"ext-curl": "*"
