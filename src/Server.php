@@ -273,13 +273,11 @@ class Server
         // Detect when the upload is complete
         $cache = $this->backend->containerFetch($this->file);
         if ($cache->length <= $localSize) {
-            // Remove the cache container, we don't need
-            // it anymore
+            // Remove the cache container, we don't need it anymore
             $this->backend->containerDelete($this->file);
             // Extension Thunder TUS CrossCheck: verify if the uploaded file is as expected or delete it
             if ($this->extCrossCheck) {
-                $localChecksum = $this->backend->getHash($this->file, $cache->checksum->algorithm);
-                if ($localChecksum !== $cache->checksum->value) {
+                if (!$this->backend->hashMatch($this->file, $cache->checksum->algorithm, $cache->checksum->value)) {
                     $this->backend->delete($this->file);
                     return $this->response->withStatus(410);
                 }

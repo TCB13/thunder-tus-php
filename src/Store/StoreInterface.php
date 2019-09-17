@@ -7,7 +7,7 @@ interface StoreInterface
     public function exists(string $name): bool;
     public function create(string $name): bool;
     public function getSize(string $name): int;
-    public function getHash(string $name, string $algo): string;
+    public function hashMatch(string $name, string $algo, string $expectedHash): bool;
     public function append(string $name, $data): bool;
     public function delete(string $name): bool;
 

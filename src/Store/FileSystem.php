@@ -51,9 +51,9 @@ class FileSystem implements StoreInterface
         return filesize($this->uploadDir . $name);
     }
 
-    public function getHash(string $name, string $algo): string
+    public function hashMatch(string $name, string $algo, string $expectedHash): bool
     {
-        return base64_encode(hash_file($algo, $this->uploadDir . $name, true));
+        return base64_encode(hash_file($algo, $this->uploadDir . $name, true)) === $expectedHash;
     }
 
     public function append(string $name, $data): bool
