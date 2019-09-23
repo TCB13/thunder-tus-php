@@ -20,6 +20,10 @@ $ composer require TCB13/thunder-tus-php
 
 ## Basic Usage
 
+Start by using composer to install `tcb13/thunder-tus-php` and other dependencies used on the examples:
+```shell
+$ composer require tcb13/thunder-tus-php psr/http-message zendframework/zend-diactoros zendframework/zend-httphandlerrunner
+```
 Here is a quick example of how to use this package:
 ````php
 $request = Zend\Diactoros\ServerRequestFactory::fromGlobals();
