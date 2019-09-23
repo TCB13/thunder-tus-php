@@ -51,8 +51,8 @@ The file will be moved from the temporary storage backend to the `$finalStorageD
 In order to use **ThunderTUS you must pick a storage backend**. Those are used to temporally store the uploaded parts until the upload is completed. Storage backends come in a variety of flavours from the local filesystem to MongoBD's GridFS:
 
 - `FileSystem`: a quick to use and understand backend for simple projects that will append uploaded parts into a file stored at the path provided on it's constructor;
-- `Redis`: useful in distributes scenarios (eg. your backend serves requests from multiple machines behind a load balancer), will store uploaded parts into a Redis database;
-- `MongoDB`: also for distributes scenarios, will store uploaded parts inside a MongoDB GridFS bucket.
+- `Redis`: useful in distributed scenarios (eg. your backend serves requests from multiple machines behind a load balancer), will store uploaded parts into a Redis database;
+- `MongoDB`: also for distributed scenarios, will store uploaded parts inside a MongoDB GridFS bucket.
 
 You may also implement your own storage backend by extending the `StorageBackend` class and/or implementing the `StorageInterface` interface.
 
@@ -80,7 +80,7 @@ $response = $server->getResponse();
 You may later retrieve the finished upload as described above at the basic usage section.
 
 ### Redis Storage Backend
-````
+````php
 $server  = new \ThunderTUS\Server($request, $response);
 
 $redisBackend = new Redis($redisClient);
