@@ -3,8 +3,9 @@
 namespace ThunderTUS\Store;
 
 use Predis\ClientInterface;
+use ThunderTUS\ThunderTUSException;
 
-class Redis implements StoreInterface
+class Redis extends StorageBackend
 {
     /** @var RedisClient */
     private $client;
@@ -34,24 +35,6 @@ class Redis implements StoreInterface
         return $this->client->get(static::$prefix . $name);
     }
 
-    public static function downloadIntoLocalFolder(ClientInterface $client, string $destinationDirectory, string $name): bool
-    {
-        $storage = new static($client);
-        $data = $storage->get($name);
-        if ($data === null) {
-            return false;
-        }
-
-        $destinationDirectory = rtrim($destinationDirectory, "/") . "/";
-        $result = file_put_contents($destinationDirectory . $name, $data);
-        if ($result === false) {
-            return false;
-        }
-
-        $storage->delete($name);
-        return true;
-    }
-
     /** Implement StoreInterface */
     public function exists(string $name): bool
     {
@@ -69,14 +52,6 @@ class Redis implements StoreInterface
         return (int)$this->client->strlen(static::$prefix . $name);
     }
 
-    public function hashMatch(string $name, string $algo, string $expectedHash): bool
-    {
-        // Redis backend storage doesn't support efficient hashing.
-        // Hashing is only used in the custom CrossCheck extension implemented by
-        // thunder-tus-php. This isn't a part of the TUS protocol, so it can be skipped safely.
-        return true;
-    }
-
     public function append(string $name, $data): bool
     {
         $result = $this->client->append(static::$prefix . $name, stream_get_contents($data));
@@ -86,6 +61,23 @@ class Redis implements StoreInterface
     public function delete(string $name): bool
     {
         return $this->client->del([self::$prefix . $name]);
+    }
+
+    public function fetchFromStorage(string $name, string $destinationDirectory): bool
+    {
+        $data = $this->get($name);
+        if ($data === null) {
+            return false;
+        }
+
+        $destinationDirectory = self::normalizePath($destinationDirectory);
+        $result = file_put_contents($destinationDirectory . $name, $data);
+        if ($result === false) {
+            return false;
+        }
+
+        $this->delete($name);
+        return true;
     }
 
     public function containerExists(string $name): bool

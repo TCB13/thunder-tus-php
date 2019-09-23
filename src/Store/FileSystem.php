@@ -4,7 +4,7 @@ namespace ThunderTUS\Store;
 
 use ThunderTUS\ThunderTUSException;
 
-class FileSystem implements StoreInterface
+class FileSystem extends StorageBackend
 {
 
     private static $containerSuffix = ".cachecontainer";
@@ -22,7 +22,7 @@ class FileSystem implements StoreInterface
         if (!is_dir($uploadDir)) {
             throw new ThunderTUSException("Invalid upload directory. Path wasn't set, it doesn't exist or it isn't a directory.");
         }
-        $this->uploadDir = rtrim(realpath($uploadDir), \DIRECTORY_SEPARATOR) . \DIRECTORY_SEPARATOR;
+        $this->uploadDir = self::normalizePath($uploadDir);
         return true;
     }
 
@@ -51,11 +51,6 @@ class FileSystem implements StoreInterface
         return filesize($this->uploadDir . $name);
     }
 
-    public function hashMatch(string $name, string $algo, string $expectedHash): bool
-    {
-        return base64_encode(hash_file($algo, $this->uploadDir . $name, true)) === $expectedHash;
-    }
-
     public function append(string $name, $data): bool
     {
         // Write the uploaded chunk to the file
@@ -70,6 +65,30 @@ class FileSystem implements StoreInterface
     {
         unlink($this->uploadDir . $name);
         return true;
+    }
+
+    public function fetchFromStorage(string $name, string $destinationDirectory): bool
+    {
+        $destinationDirectory = self::normalizePath($destinationDirectory);
+        if ($destinationDirectory === $this->uploadDir) {
+            return true;
+        }
+        return rename($this->uploadDir . $name, $destinationDirectory . $name);
+    }
+
+    public function supportsCrossCheck(): bool
+    {
+        return true;
+    }
+
+    public function crossCheck(string $name, string $algo, string $expectedHash): bool
+    {
+        return base64_encode(hash_file($algo, $this->uploadDir . $name, true)) === $expectedHash;
+    }
+
+    public function getCrossCheckAlgoritms(): array
+    {
+        return hash_algos();
     }
 
     public function containerCreate(string $name, ?\stdClass $data = null): bool

@@ -37,16 +37,23 @@ class Server
     /**
      * Thunder TUS Server constructor.
      *
-     * @param \Psr\Http\Message\ServerRequestInterface $request
-     * @param \Psr\Http\Message\ResponseInterface      $response
+     * @param ?\Psr\Http\Message\ServerRequestInterface $request
+     * @param ?\Psr\Http\Message\ResponseInterface      $response
      * @param string                                   $streamURI A stream URI from where to get uploaded data.
      *
      */
-    public function __construct(ServerRequestInterface $request, ResponseInterface $response, string $streamURI = "php://input")
+    public function __construct(?ServerRequestInterface $request = null, ?ResponseInterface $response = null, string $streamURI = "php://input")
+    {
+        $this->streamURI = $streamURI;
+        if ($request !== null && $response !== null) {
+            $this->loadHTTPInterfaces($request, $response);
+        }
+    }
+
+    public function loadHTTPInterfaces(ServerRequestInterface $request, ResponseInterface $response)
     {
         $this->request   = $request;
         $this->response  = $response;
-        $this->streamURI = $streamURI;
 
         // Detect the ThunderTUS CrossCheck extension
         if ($this->request->getHeaderLine("CrossCheck") == true) {
@@ -57,11 +64,6 @@ class Server
         if ($this->request->getHeaderLine("Express") == true) {
             $this->extExpress = true;
         }
-
-        // Add global headers to the response
-        $this->response = $this->response->withHeader("Tus-Resumable", "1.0.0")
-            ->withHeader("Tus-Max-Size", $this->uploadMaxFileSize)
-            ->withHeader("Cache-Control", "no-store");
     }
 
     public function setStorageBackend($backend)
@@ -74,12 +76,38 @@ class Server
     }
 
     /**
+     * Fetch a finished upload from the current backend storage.
+     * This method abstracts backend storage file retrivel in a way that the programmer doen't
+     * need to know what backend storage is being used at all times.
+     * This is useful when the TUS Server is provided by some kind of Service Provider in a
+     * dependency injection context.
+     *
+     * @param string $filename
+     * @param string $destinationDirectory
+     *
+     * @return bool
+     */
+    public function fetchFromStorage(string $filename, string $destinationDirectory): bool
+    {
+        return $this->backend->fetchFromStorage($filename, $destinationDirectory);
+    }
+
+    /**
      * Handles the incoming request.
      *
      * @throws \ThunderTUS\ThunderTUSException
      */
     public function handle(): Server
     {
+        if (!isset($this->request) || !isset($this->response)) {
+            throw new ThunderTUSException("You must set an '\Psr\Http\Message\ServerRequestInterface' and a '\Psr\Http\Message\ResponseInterface' implementation via the ThunderTUS constructor or by calling 'loadHTTPInterfaces()'.");
+        }
+
+        // Add global headers to the response
+        $this->response = $this->response->withHeader("Tus-Resumable", "1.0.0")
+            ->withHeader("Tus-Max-Size", $this->uploadMaxFileSize)
+            ->withHeader("Cache-Control", "no-store");
+
         // Check if a storage backend is set
         if ($this->backend === null) {
             throw new ThunderTUSException("You must set a storage backend before handling requests.");
@@ -152,8 +180,9 @@ class Server
 
         // Extension Thunder TUS CrossCheck: get complete upload checksum
         if ($this->extCrossCheck) {
+            $supportedAlgos = $this->backend->supportsCrossCheck() ? $this->backend->getCrossCheckAlgoritms() : hash_algos();
             $cache->checksum = self::parseChecksum($this->request->getHeaderLine("Upload-CrossChecksum"));
-            if ($cache->checksum === false) {
+            if ($cache->checksum === false || !in_array($cache->checksum->algorithm, $supportedAlgos)) {
                 return $this->response->withStatus(400);
             }
         }
@@ -226,8 +255,9 @@ class Server
         }
 
         // Check if the server supports the proposed checksum algorithm
+        $supportedAlgos = $this->backend->supportsCrossCheck() ? $this->backend->getCrossCheckAlgoritms() : hash_algos();
         $checksum = self::parseChecksum($this->request->getHeaderLine("Upload-Checksum"));
-        if ($checksum === false) {
+        if ($checksum === false || !in_array($checksum->algorithm, $supportedAlgos)) {
             return $this->response->withStatus(400);
         }
 
@@ -266,7 +296,6 @@ class Server
         }
 
         rewind($this->stream);
-
         $this->backend->append($this->file, $this->stream);
         $localSize = $this->backend->getSize($this->file);
 
@@ -276,8 +305,8 @@ class Server
             // Remove the cache container, we don't need it anymore
             $this->backend->containerDelete($this->file);
             // Extension Thunder TUS CrossCheck: verify if the uploaded file is as expected or delete it
-            if ($this->extCrossCheck) {
-                if (!$this->backend->hashMatch($this->file, $cache->checksum->algorithm, $cache->checksum->value)) {
+            if ($this->extCrossCheck && $this->backend->supportsCrossCheck()) {
+                if (!$this->backend->crossCheck($this->file, $cache->checksum->algorithm, $cache->checksum->value)) {
                     $this->backend->delete($this->file);
                     return $this->response->withStatus(410);
                 }
@@ -334,20 +363,15 @@ class Server
 
     protected static function parseChecksum(string $value = "")
     {
-        if ($value === "") {
+        $value = explode(" ", $value);
+        if (count($value) !== 2) {
             return false;
         }
-
-        $value = \explode(" ", $value);
-        if (empty($value) || !\in_array($value[0], hash_algos()) || !isset($value[1])) {
-            return false;
-        }
-
-        $checksum            = new \stdClass();
-        $checksum->algorithm = $value[0];
-        $checksum->value     = $value[1];
-
-        return $checksum;
+        $value = array_map("trim", $value);
+        return (object)[
+            "algorithm" => $value[0],
+            "value"     => $value[1]
+        ];
     }
 
     /**
