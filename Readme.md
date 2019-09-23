@@ -20,7 +20,7 @@ $ composer require TCB13/thunder-tus-php
 
 ## Basic Usage
 
-Start by using composer to install `tcb13/thunder-tus-php` and other dependencies used on the examples:
+Start by using composer to install `tcb13/thunder-tus-php` and other dependencies:
 ```shell
 $ composer require tcb13/thunder-tus-php psr/http-message zendframework/zend-diactoros zendframework/zend-httphandlerrunner
 ```
