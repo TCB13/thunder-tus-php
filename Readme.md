@@ -126,8 +126,8 @@ public static function register()
     $server->setStorageBackend($backend);
 
     // Set TUS upload parameters
-    $server->setUploadMaxFileSize((int)$settings->maxSize]);
-    $server->setApiPath($settings->endpoint]);
+    $server->setUploadMaxFileSize((int)$settings->maxSize);
+    $server->setApiPath($settings->endpoint);
     
     return $server;
 }
@@ -151,8 +151,8 @@ public function upload()
     return $server->getResponse();
 }
 ````
-We didn't provide the PSR HTTP request and response implementations on the constructor, we did it later by calling `$server->loadHTTPInterfaces(..)`.
+We've only provided the PSR HTTP request and response implementations on the controller by calling `$server->loadHTTPInterfaces(..)`.
 
 ## Examples, Clients and Extensions
 
-You may find more examples at the `examples` directory, including a simple client and a client with the tus-crosscheck and tus-express extensions enabled.
+You may find more in-dept examples at the `examples` directory, including a simple client and a client with the tus-crosscheck and tus-express extensions enabled.
