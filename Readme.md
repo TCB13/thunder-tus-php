@@ -20,12 +20,15 @@ $ composer require TCB13/thunder-tus-php
 
 ## Basic Usage
 
-Start by using composer to install `tcb13/thunder-tus-php` and other dependencies:
+Use composer to install `tcb13/thunder-tus-php` and some other packages used in the following examples:
 ```shell
 $ composer require tcb13/thunder-tus-php psr/http-message zendframework/zend-diactoros zendframework/zend-httphandlerrunner
 ```
-Here is a quick example of how to use this package:
+Create your `tus-server.php` file:
 ````php
+<?php
+include "vendor/autoload.php";
+
 $request = Zend\Diactoros\ServerRequestFactory::fromGlobals();
 $response = new Zend\Diactoros\Response();
 
@@ -39,7 +42,14 @@ $response = $server->getResponse();
 $emitter = new Zend\HttpHandlerRunner\Emitter\SapiEmitter();
 $emitter->emit($response);
 ````
-You may later retrieve the finished upload by calling:
+Create the following `.htaccess` (or equivalent) at your virtual host:
+````
+RewriteEngine on
+RewriteBase /
+RewriteRule ^(.*)$ tus-server.php [L,QSA]
+````
+Now you can go ahead an upload a using the TUS client included at `examples/client-express.php`.
+After the upload is finished retrieve in another script by calling:
 ````php
 $finalStorageDirectory = "/var/www/html/uploads";
 $server = new ThunderTUS\Server();
