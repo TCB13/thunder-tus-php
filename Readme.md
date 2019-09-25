@@ -49,7 +49,7 @@ RewriteBase /
 RewriteRule ^(.*)$ tus-server.php [L,QSA]
 ````
 Now you can go ahead and upload a file using the TUS client included at `examples/client-express.php`.
-After the upload is finished retrieve in another script by calling:
+After the upload is finished you may retrieve the fine in another script by calling:
 ````php
 $finalStorageDirectory = "/var/www/html/uploads";
 $server = new ThunderTUS\Server();
