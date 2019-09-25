@@ -109,7 +109,7 @@ You may later retrieve the finished upload as described above at the basic usage
 ## ThunderTUS & Dependency Injection
 
 ThunderTUS was designed to be integrated into dependency injection systems / containers. 
-In simple scenarios you should pass an implementation of a PSR HTTP request and response to ThunderTUS's constructor, however this is optional. This is useful when you want to instantiate the `Server` in a Service Provider and use it in a controller.
+In simple scenarios you should pass an implementation of a PSR HTTP request and response to ThunderTUS's constructor, however this is optional. Sometimes it might be desirable to be able to instantiate the `Server` in a Service Provider and provide the PSR HTTP implementations later in a controller.
 
 Example of a **ThunderTUS service provider**:
 
