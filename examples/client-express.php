@@ -3,7 +3,7 @@
 error_reporting(E_ALL);
 
 $url     = "http://tus.test/wall-express.jpg";
-$chkAlgo = "crc32";
+$chkAlgo = "md5";
 $file    = realpath("wall.jpg");
 $fileChk = base64_encode(hash_file($chkAlgo, $file, true));
 $fileLen = filesize($file);
