@@ -61,7 +61,7 @@ class MongoDB extends StorageBackend
         return true;
     }
 
-    public function fetchFromStorage(string $name, string $destinationDirectory): bool
+    public function fetchFromStorage(string $name, string $destinationDirectory, bool $removeAfter = true): bool
     {
         $parts   = $this->get($name, true);
         if (empty($parts) || $parts === null) {
@@ -77,15 +77,39 @@ class MongoDB extends StorageBackend
         foreach ($parts as $part) {
             $stream = $this->bucket->openDownloadStream($part);
             while (!feof($stream)) {
-                fwrite($file, fread($stream, 5000000));
+                fwrite($file, fread($stream, 10000000));
             }
             fclose($stream);
-            // Delete from mongodb
-            $this->bucket->delete($part);
+            // Delete part from mongodb
+            if ($removeAfter) {
+                $this->bucket->delete($part);
+            }
         }
 
         fclose($file);
         return true;
+    }
+
+    public function streamFromStorage(string $name, bool $removeAfter = true)
+    {
+        $parts   = $this->get($name, true);
+        if (empty($parts) || $parts === null) {
+            return false;
+        }
+        $parts = array_column($parts, "_id");
+
+        $final = fopen("php://temp", "r+");
+        foreach ($parts as $part) {
+            $partStream = $this->bucket->openDownloadStream($part);
+            stream_copy_to_stream($partStream, $final);
+            fclose($partStream);
+            // Delete part from mongodb
+            if ($removeAfter) {
+                $this->bucket->delete($part);
+            }
+        }
+
+        return $final;
     }
 
 

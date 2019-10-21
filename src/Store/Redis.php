@@ -63,7 +63,7 @@ class Redis extends StorageBackend
         return $this->client->del([self::$prefix . $name]);
     }
 
-    public function fetchFromStorage(string $name, string $destinationDirectory): bool
+    public function fetchFromStorage(string $name, string $destinationDirectory, bool $removeAfter = true): bool
     {
         $data = $this->get($name);
         if ($data === null) {
@@ -76,7 +76,9 @@ class Redis extends StorageBackend
             return false;
         }
 
-        $this->delete($name);
+        if ($removeAfter) {
+            $this->delete($name);
+        }
         return true;
     }
 

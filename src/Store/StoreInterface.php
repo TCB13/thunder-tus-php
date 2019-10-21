@@ -9,7 +9,8 @@ interface StoreInterface
     public function getSize(string $name): int;
     public function append(string $name, $data): bool;
     public function delete(string $name): bool;
-    public function fetchFromStorage(string $name, string $destinationDirectory): bool;
+    public function fetchFromStorage(string $name, string $destinationDirectory, bool $removeAfter = true): bool;
+    public function streamFromStorage(string $name, bool $removeAfter = true);
 
     public function supportsCrossCheck(): bool;
     public function crossCheck(string $name, string $algo, string $expectedHash): bool;

@@ -75,6 +75,11 @@ class Server
         return $this;
     }
 
+    public function getStorageBackend()
+    {
+        return $this->backend;
+    }
+
     /**
      * Fetch a finished upload from the current backend storage.
      * This method abstracts backend storage file retrivel in a way that the programmer doen't
@@ -84,12 +89,18 @@ class Server
      *
      * @param string $filename
      * @param string $destinationDirectory
+     * @param bool $removeAfter
      *
      * @return bool
      */
-    public function fetchFromStorage(string $filename, string $destinationDirectory): bool
+    public function fetchFromStorage(string $filename, string $destinationDirectory, bool $removeAfter = true): bool
     {
-        return $this->backend->fetchFromStorage($filename, $destinationDirectory);
+        return $this->backend->fetchFromStorage($filename, $destinationDirectory, $removeAfter);
+    }
+
+    public function streamFromStorage(string $filename, bool $removeAfter = true)
+    {
+        return $this->backend->streamFromStorage($filename, $removeAfter);
     }
 
     /**

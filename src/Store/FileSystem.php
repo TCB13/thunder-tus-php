@@ -67,13 +67,18 @@ class FileSystem extends StorageBackend
         return true;
     }
 
-    public function fetchFromStorage(string $name, string $destinationDirectory): bool
+    public function fetchFromStorage(string $name, string $destinationDirectory, bool $removeAfter = true): bool
     {
         $destinationDirectory = self::normalizePath($destinationDirectory);
         if ($destinationDirectory === $this->uploadDir) {
             return true;
         }
-        return rename($this->uploadDir . $name, $destinationDirectory . $name);
+
+        if ($removeAfter) {
+            return rename($this->uploadDir . $name, $destinationDirectory . $name);
+        } else {
+            return copy($this->uploadDir . $name, $destinationDirectory . $name);
+        }
     }
 
     public function supportsCrossCheck(): bool
