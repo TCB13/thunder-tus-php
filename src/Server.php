@@ -39,7 +39,7 @@ class Server
      *
      * @param ?\Psr\Http\Message\ServerRequestInterface $request
      * @param ?\Psr\Http\Message\ResponseInterface      $response
-     * @param string                                   $streamURI A stream URI from where to get uploaded data.
+     * @param string $streamURI A stream URI from where to get uploaded data.
      *
      */
     public function __construct(?ServerRequestInterface $request = null, ?ResponseInterface $response = null, string $streamURI = "php://input")
@@ -52,8 +52,8 @@ class Server
 
     public function loadHTTPInterfaces(ServerRequestInterface $request, ResponseInterface $response)
     {
-        $this->request   = $request;
-        $this->response  = $response;
+        $this->request  = $request;
+        $this->response = $response;
 
         // Detect the ThunderTUS CrossCheck extension
         if ($this->request->getHeaderLine("CrossCheck") == true) {
@@ -81,26 +81,53 @@ class Server
     }
 
     /**
-     * Fetch a finished upload from the current backend storage.
-     * This method abstracts backend storage file retrivel in a way that the programmer doen't
+     * Completes an upload and fetches the finished file from the backend storage.
+     * This method abstracts backend storage file retrivel in a way that the user doen't
      * need to know what backend storage is being used at all times.
      * This is useful when the TUS Server is provided by some kind of Service Provider in a
      * dependency injection context.
      *
-     * @param string $filename
-     * @param string $destinationDirectory
-     * @param bool $removeAfter
+     * @param string $filename             Name of your file
+     * @param string $destinationDirectory Where to place the finished file
+     * @param bool   $removeAfter          Remove the temporary files after this operation
      *
      * @return bool
      */
-    public function fetchFromStorage(string $filename, string $destinationDirectory, bool $removeAfter = true): bool
+    public function completeAndFetch(string $filename, string $destinationDirectory, bool $removeAfter = true): bool
     {
-        return $this->backend->fetchFromStorage($filename, $destinationDirectory, $removeAfter);
+        return $this->backend->completeAndFetch($filename, $destinationDirectory, $removeAfter);
     }
 
-    public function streamFromStorage(string $filename, bool $removeAfter = true)
+    /**
+     * Completes an upload and returns the finished file in the form of a stream.
+     * Useful when you want to upload the file to another system without writting
+     * it to the disk most of the time.
+     * This method uses PHP's tmp stream to merge the file parts. Ajust it accordingly.
+     *
+     * @param string $filename    Name of your file
+     * @param bool   $removeAfter Remove the temporary files after this operation
+     *
+     * @return bool
+     */
+    public function completeAndStream(string $filename, bool $removeAfter = true)
     {
-        return $this->backend->streamFromStorage($filename, $removeAfter);
+        return $this->backend->completeAndStream($filename, $removeAfter);
+    }
+
+    /**
+     * Completes an upload without fetching it. The file will be placed in the
+     * same backend storage you're using for the temporary part upload.
+     * Useful when you want to keep the finished file in the same storage backend
+     * you're using for the temporary part upload.
+     * This method uses PHP's tmp stream to merge the file parts. Ajust it accordingly.
+     *
+     * @param string $filename    Name of your file
+     *
+     * @return bool
+     */
+    public function complete(string $name): bool
+    {
+        return $this->backend->complete($name);
     }
 
     /**
@@ -191,7 +218,7 @@ class Server
 
         // Extension Thunder TUS CrossCheck: get complete upload checksum
         if ($this->extCrossCheck) {
-            $supportedAlgos = $this->backend->supportsCrossCheck() ? $this->backend->getCrossCheckAlgoritms() : hash_algos();
+            $supportedAlgos  = $this->backend->supportsCrossCheck() ? $this->backend->getCrossCheckAlgoritms() : hash_algos();
             $cache->checksum = self::parseChecksum($this->request->getHeaderLine("Upload-CrossChecksum"));
             if ($cache->checksum === false || !in_array($cache->checksum->algorithm, $supportedAlgos)) {
                 return $this->response->withStatus(400);
@@ -267,7 +294,7 @@ class Server
 
         // Check if the server supports the proposed checksum algorithm
         $supportedAlgos = $this->backend->supportsCrossCheck() ? $this->backend->getCrossCheckAlgoritms() : hash_algos();
-        $checksum = self::parseChecksum($this->request->getHeaderLine("Upload-Checksum"));
+        $checksum       = self::parseChecksum($this->request->getHeaderLine("Upload-Checksum"));
         if ($checksum === false || !in_array($checksum->algorithm, $supportedAlgos)) {
             return $this->response->withStatus(400);
         }

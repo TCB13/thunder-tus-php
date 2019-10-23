@@ -12,6 +12,7 @@ class MongoDB extends StorageBackend
 
     private static $bucketName = "tus";
     private static $containerPrefix = "container.";
+    private static $partBufferSize = 10000000;
 
     public function __construct(\MongoDB\Database $database)
     {
@@ -61,7 +62,7 @@ class MongoDB extends StorageBackend
         return true;
     }
 
-    public function fetchFromStorage(string $name, string $destinationDirectory, bool $removeAfter = true): bool
+    public function completeAndFetch(string $name, string $destinationDirectory, bool $removeAfter = true): bool
     {
         $parts   = $this->get($name, true);
         if (empty($parts) || $parts === null) {
@@ -69,15 +70,13 @@ class MongoDB extends StorageBackend
         }
         $parts = array_column($parts, "_id");
 
-        // Create or open the file to store fata
+        // Read the gridfs parts file into local storage 10MB at the time
         $destinationDirectory = self::normalizePath($destinationDirectory);
         $file = fopen($destinationDirectory . $name, 'w');
-
-        // Read the gridfs file into local storage 5MB at the time
         foreach ($parts as $part) {
             $stream = $this->bucket->openDownloadStream($part);
             while (!feof($stream)) {
-                fwrite($file, fread($stream, 10000000));
+                fwrite($file, fread($stream, self::$partBufferSize));
             }
             fclose($stream);
             // Delete part from mongodb
@@ -90,7 +89,7 @@ class MongoDB extends StorageBackend
         return true;
     }
 
-    public function streamFromStorage(string $name, bool $removeAfter = true)
+    public function completeAndStream(string $name, bool $removeAfter = true)
     {
         $parts   = $this->get($name, true);
         if (empty($parts) || $parts === null) {
@@ -98,6 +97,7 @@ class MongoDB extends StorageBackend
         }
         $parts = array_column($parts, "_id");
 
+        // Read the gridfs parts file a final local tmp stream
         $final = fopen("php://temp", "r+");
         foreach ($parts as $part) {
             $partStream = $this->bucket->openDownloadStream($part);
@@ -112,6 +112,35 @@ class MongoDB extends StorageBackend
         return $final;
     }
 
+    public function complete(string $name): bool
+    {
+        $parts   = $this->get($name, true);
+        if (empty($parts) || $parts === null) {
+            return false;
+        }
+        $parts = array_column($parts, "_id");
+
+        // Read the gridfs parts file into a local tmp 10MB at the time
+        $final = fopen("php://temp", "r+");
+        foreach ($parts as $part) {
+            $stream = $this->bucket->openDownloadStream($part);
+            while (!feof($stream)) {
+                stream_copy_to_stream(fread($stream, self::$partBufferSize), $final);
+            }
+            fclose($stream);
+            // Delete part from mongodb
+            if ($removeAfter) {
+                $this->bucket->delete($part);
+            }
+        }
+
+        // We now have a final tmp with the entrie file upload it to mongodb
+        rewind($final);
+        $this->bucket->uploadFromStream($name, $final);
+
+        return true;
+
+    }
 
     public function containerExists(string $name): bool
     {

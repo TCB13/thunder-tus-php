@@ -67,7 +67,7 @@ class FileSystem extends StorageBackend
         return true;
     }
 
-    public function fetchFromStorage(string $name, string $destinationDirectory, bool $removeAfter = true): bool
+    public function completeAndFetch(string $name, string $destinationDirectory, bool $removeAfter = true): bool
     {
         $destinationDirectory = self::normalizePath($destinationDirectory);
         if ($destinationDirectory === $this->uploadDir) {
@@ -79,6 +79,24 @@ class FileSystem extends StorageBackend
         } else {
             return copy($this->uploadDir . $name, $destinationDirectory . $name);
         }
+    }
+
+    public function completeAndStream(string $name, bool $removeAfter = true)
+    {
+        $stream = fopen($this->uploadDir . $name, "r");
+        if ($removeAfter) {
+            $final = fopen("php://temp", "r+");
+            stream_copy_to_stream($stream, $final);
+            fclose($stream);
+            return unlink($this->uploadDir . $name);
+        } else {
+            return $stream;
+        }
+    }
+
+    public function complete(string $name): bool
+    {
+        return true;
     }
 
     public function supportsCrossCheck(): bool

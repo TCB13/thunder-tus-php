@@ -63,7 +63,7 @@ class Redis extends StorageBackend
         return $this->client->del([self::$prefix . $name]);
     }
 
-    public function fetchFromStorage(string $name, string $destinationDirectory, bool $removeAfter = true): bool
+    public function completeAndFetch(string $name, string $destinationDirectory, bool $removeAfter = true): bool
     {
         $data = $this->get($name);
         if ($data === null) {
@@ -79,6 +79,29 @@ class Redis extends StorageBackend
         if ($removeAfter) {
             $this->delete($name);
         }
+        return true;
+    }
+
+    public function completeAndStream(string $name, bool $removeAfter = true)
+    {
+        $data = $this->get($name);
+        if ($data === null) {
+            return false;
+        }
+
+        $final = fopen("php://temp", "r+");
+        fwrite($stream, $string);
+        rewind($stream);
+
+        if ($removeAfter) {
+            $this->delete($name);
+        }
+
+        return $stream;
+    }
+
+    public function complete(string $name): bool
+    {
         return true;
     }
 

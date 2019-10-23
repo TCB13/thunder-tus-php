@@ -53,12 +53,14 @@ After the upload is finished you may retrieve the file in another script by call
 ````php
 $finalStorageDirectory = "/var/www/html/uploads";
 $server = new ThunderTUS\Server();
-$status = $server->fetchFromStorage($filename, $finalStorageDirectory);
+$status = $server->completeAndFetch($filename, $finalStorageDirectory);
 if (!$status) {
       throw new \Exception("Could not fetch ({$filename}) from storage backend: not found.");
 }
 ````
 The file will be moved from the temporary storage backend to the `$finalStorageDirectory` directory.
+
+You may also retrieve the final file as a stream with `ThunderTUS\Server::completeAndStream()` or keep on the same place as the temporary parts with `ThunderTUS\Server::complete()`
 
 ## Storage Backends
 
