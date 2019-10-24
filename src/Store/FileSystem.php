@@ -75,7 +75,8 @@ class FileSystem extends StorageBackend
         }
 
         if ($removeAfter) {
-            return rename($this->uploadDir . $name, $destinationDirectory . $name);
+             $this->containerDelete($name);
+             return rename($this->uploadDir . $name, $destinationDirectory . $name);
         } else {
             return copy($this->uploadDir . $name, $destinationDirectory . $name);
         }
@@ -88,6 +89,7 @@ class FileSystem extends StorageBackend
             $final = fopen("php://temp", "r+");
             stream_copy_to_stream($stream, $final);
             fclose($stream);
+            $this->containerDelete($name);
             return unlink($this->uploadDir . $name);
         } else {
             return $stream;
@@ -96,6 +98,7 @@ class FileSystem extends StorageBackend
 
     public function complete(string $name): bool
     {
+        $this->containerDelete($name);
         return true;
     }
 

@@ -78,6 +78,7 @@ class Redis extends StorageBackend
 
         if ($removeAfter) {
             $this->delete($name);
+            $this->containerDelete($name);
         }
         return true;
     }
@@ -95,6 +96,7 @@ class Redis extends StorageBackend
 
         if ($removeAfter) {
             $this->delete($name);
+            $this->containerDelete($name);
         }
 
         return $stream;
@@ -102,6 +104,7 @@ class Redis extends StorageBackend
 
     public function complete(string $name): bool
     {
+        $this->containerDelete($name);
         return true;
     }
 

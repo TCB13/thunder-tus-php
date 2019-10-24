@@ -85,6 +85,10 @@ class MongoDB extends StorageBackend
             }
         }
 
+        if ($removeAfter) {
+            $this->containerDelete($name);
+        }
+
         fclose($file);
         return true;
     }
@@ -109,6 +113,10 @@ class MongoDB extends StorageBackend
             }
         }
 
+        if ($removeAfter) {
+            $this->containerDelete($name);
+        }
+
         return $final;
     }
 
@@ -129,10 +137,10 @@ class MongoDB extends StorageBackend
             }
             fclose($stream);
             // Delete part from mongodb
-            if ($removeAfter) {
-                $this->bucket->delete($part);
-            }
+            $this->bucket->delete($part);
         }
+
+        $this->containerDelete($name);
 
         // We now have a final tmp with the entrie file upload it to mongodb
         rewind($final);

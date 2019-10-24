@@ -82,7 +82,7 @@ class Server
 
     /**
      * Completes an upload and fetches the finished file from the backend storage.
-     * This method abstracts backend storage file retrivel in a way that the user doen't
+     * This method abstracts backend storage file retrieval in a way that the user doesn't
      * need to know what backend storage is being used at all times.
      * This is useful when the TUS Server is provided by some kind of Service Provider in a
      * dependency injection context.
@@ -100,9 +100,9 @@ class Server
 
     /**
      * Completes an upload and returns the finished file in the form of a stream.
-     * Useful when you want to upload the file to another system without writting
+     * Useful when you want to upload the file to another system without writing
      * it to the disk most of the time.
-     * This method uses PHP's tmp stream to merge the file parts. Ajust it accordingly.
+     * This method uses PHP's tmp stream to merge the file parts. Adjust it accordingly.
      *
      * @param string $filename    Name of your file
      * @param bool   $removeAfter Remove the temporary files after this operation
@@ -119,7 +119,7 @@ class Server
      * same backend storage you're using for the temporary part upload.
      * Useful when you want to keep the finished file in the same storage backend
      * you're using for the temporary part upload.
-     * This method uses PHP's tmp stream to merge the file parts. Ajust it accordingly.
+     * This method uses PHP's tmp stream to merge the file parts. Adjust it accordingly.
      *
      * @param string $filename    Name of your file
      *
@@ -226,8 +226,8 @@ class Server
         }
 
         // Create an empty file to store the upload and save the cache container
-        $this->backend->create($this->file);
         $this->backend->containerCreate($this->file, $cache);
+        $this->backend->create($this->file);
 
         return $this->response->withStatus(201)
             ->withHeader("Location", $this->location);
@@ -340,12 +340,11 @@ class Server
         // Detect when the upload is complete
         $cache = $this->backend->containerFetch($this->file);
         if ($cache->length <= $localSize) {
-            // Remove the cache container, we don't need it anymore
-            $this->backend->containerDelete($this->file);
             // Extension Thunder TUS CrossCheck: verify if the uploaded file is as expected or delete it
             if ($this->extCrossCheck && $this->backend->supportsCrossCheck()) {
                 if (!$this->backend->crossCheck($this->file, $cache->checksum->algorithm, $cache->checksum->value)) {
                     $this->backend->delete($this->file);
+                    $this->backend->containerDelete($this->file);
                     return $this->response->withStatus(410);
                 }
             }
