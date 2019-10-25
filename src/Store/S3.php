@@ -47,7 +47,7 @@ class S3 extends StorageBackend
     {
         $container = $this->containerFetch($name);
         if (!isset($container->uploadid)) {
-            return false;
+            return 0;
         }
 
         $result = $this->client->listParts([
@@ -76,15 +76,11 @@ class S3 extends StorageBackend
             $partNumber = 1;
             $parts      = [];
             // Find the mimetype of the file by reading the begining of the first part
-            $finfo    = new \finfo(FILEINFO_MIME);
-            $mimetype = $finfo->buffer(fread($data, 100));
-            $mimetype = explode(";", $mimetype)[0];
-            rewind($data);
-            $container->mimetype = $mimetype;
+            $container->mimetype = $this->mimetypeFromStream($data);
         } else {
             $parts      = (array)$container->parts;
             $lastPart   = end($parts)->PartNumber;
-            $partNumber = ($lastPart+1);
+            $partNumber = ($lastPart + 1);
         }
 
         // Upload the part
@@ -110,6 +106,31 @@ class S3 extends StorageBackend
         $this->containerUpdate($name, $container);
 
         return true;
+    }
+
+    public function store(string $name, $data): bool
+    {
+        // Store the entire file in one request, used for single part uploads
+        try {
+            $this->client->putObject([
+                "Bucket"      => $this->bucket,
+                "Key"         => $this->prefix . "/" . $name,
+                "ContentType" => $this->mimetypeFromStream($data),
+                "Body"        => $data,
+            ]);
+        } catch (S3Exception $e) {
+            return false;
+        }
+        return true;
+    }
+
+    protected function mimetypeFromStream($stream): string
+    {
+        $finfo    = new \finfo(FILEINFO_MIME);
+        $mimetype = $finfo->buffer(fread($stream, 100));
+        $mimetype = explode(";", $mimetype)[0];
+        rewind($stream);
+        return $mimetype;
     }
 
     public function delete(string $name): bool
@@ -165,7 +186,7 @@ class S3 extends StorageBackend
         }
 
         // Download the completed file
-        $result   = $this->client->getObject([
+        $result = $this->client->getObject([
             "Bucket" => $this->bucket,
             "Key"    => $this->prefix . "/" . $name,
         ]);
@@ -193,7 +214,13 @@ class S3 extends StorageBackend
 
     public function complete(string $name): bool
     {
-        $container = $this->containerFetch($name);
+        try {
+            $container = $this->containerFetch($name);
+        } catch (S3Exception $e) {
+            // Single file uploads doesn't have container
+            // no further file processing is required!
+            return true;
+        }
         if (!isset($container->uploadid) || !isset($container->parts)) {
             return false;
         }
@@ -232,7 +259,6 @@ class S3 extends StorageBackend
         }
 
         $this->containerDelete($name);
-
         return true;
     }
 
@@ -279,7 +305,6 @@ class S3 extends StorageBackend
             "Key"    => $this->prefix . "/" . $this->containerPrefix . $name,
         ]);
         $result = (string)$result["Body"];
-
         return json_decode($result);
     }
 
@@ -289,7 +314,6 @@ class S3 extends StorageBackend
             "Bucket" => $this->bucket,
             "Key"    => $this->prefix . "/" . $this->containerPrefix . $name,
         ]);
-
         return true;
     }
 }

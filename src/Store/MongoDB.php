@@ -49,6 +49,11 @@ class MongoDB extends StorageBackend
 
     public function append(string $name, $data): bool
     {
+        return $this->store($name, $data);
+    }
+
+    public function store(string $name, $data): bool
+    {
         $this->bucket->uploadFromStream($name, $data);
         return true;
     }

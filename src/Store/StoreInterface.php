@@ -8,6 +8,7 @@ interface StoreInterface
     public function create(string $name): bool;
     public function getSize(string $name): int;
     public function append(string $name, $data): bool;
+    public function store(string $name, $data): bool;
     public function delete(string $name): bool;
 
     public function completeAndFetch(string $name, string $destinationDirectory, bool $removeAfter = true): bool;

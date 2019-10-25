@@ -122,7 +122,7 @@ $client = new S3Client([
         "secret" => "--secret---",
     ],
 ]);
-$backend  = new S3($client, $settingsS3->bucket, $prefix);
+$backend  = new S3($client, "your-bucket", "optional-path-prefix");
 $server->setStorageBackend($backend);
 
 $server->setUploadMaxFileSize(50000);

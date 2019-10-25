@@ -54,6 +54,11 @@ class FileSystem extends StorageBackend
     public function append(string $name, $data): bool
     {
         // Write the uploaded chunk to the file
+        return $this->store($name, $data);
+    }
+
+    public function store(string $name, $data): bool
+    {
         $file = fopen($this->uploadDir . $name, "ab");
         stream_copy_to_stream($data, $file);
         fclose($file);

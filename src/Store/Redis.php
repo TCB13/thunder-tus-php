@@ -58,6 +58,11 @@ class Redis extends StorageBackend
         return $result;
     }
 
+    public function store(string $name, $data): bool
+    {
+        return $this->client->setex(static::$prefix . $name, self::$tusExpire, stream_get_contents($data)) == "OK";
+    }
+
     public function delete(string $name): bool
     {
         return $this->client->del([self::$prefix . $name]);

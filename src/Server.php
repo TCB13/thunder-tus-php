@@ -121,7 +121,7 @@ class Server
      * you're using for the temporary part upload.
      * This method uses PHP's tmp stream to merge the file parts. Adjust it accordingly.
      *
-     * @param string $filename    Name of your file
+     * @param string $filename Name of your file
      *
      * @return bool
      */
@@ -192,7 +192,7 @@ class Server
      *
      * @return \Psr\Http\Message\ResponseInterface
      */
-    protected function handlePOST(): ResponseInterface
+    protected function handlePOST(bool $singlePartUpload = false): ResponseInterface
     {
 
         // If the already exists we can't create it
@@ -202,8 +202,7 @@ class Server
 
         // Get the total upload expected length
         $length = $this->request->getHeaderLine("Upload-Length");
-        if ($length === "") // Note: Some PSR7 implementations discard headers set to 0.
-        {
+        if ($length === "") { // Note: Some PSR7 implementations discard headers set to 0.
             return $this->response->withStatus(400);
         }
 
@@ -225,9 +224,11 @@ class Server
             }
         }
 
-        // Create an empty file to store the upload and save the cache container
-        $this->backend->containerCreate($this->file, $cache);
-        $this->backend->create($this->file);
+        // Create an empty file to store the upload and save the cache container if not single part
+        if (!$this->extExpress || ($this->extExpress && !$singlePartUpload)) {
+            $this->backend->containerCreate($this->file, $cache);
+            $this->backend->create($this->file);
+        }
 
         return $this->response->withStatus(201)
             ->withHeader("Location", $this->location);
@@ -300,16 +301,26 @@ class Server
         }
 
         // Extension Thunder TUS Express: create the file on PATCH request
+        $singlePartUpload = false;
         if ($this->extExpress && $offset == 0) {
-            $this->response = $this->handlePOST();
+            // Check if we're uploading a small file with only one part (some TUS clients might not set this header)
+            $contentLength    = $this->request->getHeaderLine("Content-Length");
+            $uploadLength     = $this->request->getHeaderLine("Upload-Length");
+            if ($contentLength !== "" && $uploadLength !== "" && $contentLength >= $uploadLength) {
+                $singlePartUpload = true;
+            }
+
+            $this->response = $this->handlePOST($singlePartUpload);
             $code           = $this->response->getStatusCode();
             if ($code !== 201 && $code !== 409) {
                 return $this->response;
             }
-            if ($code === 409 && !$this->backend->containerExists($this->file)) // Avoid overwriting completed uploads
-            {
+
+            // Avoid overwriting completed uploads
+            if ($code === 409 && !$singlePartUpload && !$this->backend->containerExists($this->file)) {
                 return $this->response;
             }
+
         } else { // For Standard TUS
             if (!$this->backend->exists($this->file)) {
                 return $this->response->withStatus(404);
@@ -318,10 +329,12 @@ class Server
 
         // Check if the current stored file offset is different from the proposed upload offset
         // This ensures we're getting the file block by block in the right order and nothing is missing
-        $fsize = $this->backend->getSize($this->file);
-        if ($fsize != $offset) {
-            return $this->response->withStatus(409)
-                ->withHeader("Upload-Offset", $fsize);
+        if (!$singlePartUpload) {
+            $fsize = $this->backend->getSize($this->file);
+            if ($fsize != $offset) {
+                return $this->response->withStatus(409)
+                    ->withHeader("Upload-Offset", $fsize);
+            }
         }
 
         // Compare proposed checksum with the received data checksum
@@ -332,20 +345,29 @@ class Server
             return $this->response->withStatus(460, "Checksum Mismatch")
                 ->withHeader("Upload-Offset", $fsize);
         }
-
         rewind($this->stream);
-        $this->backend->append($this->file, $this->stream);
-        $localSize = $this->backend->getSize($this->file);
 
-        // Detect when the upload is complete
-        $cache = $this->backend->containerFetch($this->file);
-        if ($cache->length <= $localSize) {
-            // Extension Thunder TUS CrossCheck: verify if the uploaded file is as expected or delete it
-            if ($this->extCrossCheck && $this->backend->supportsCrossCheck()) {
-                if (!$this->backend->crossCheck($this->file, $cache->checksum->algorithm, $cache->checksum->value)) {
-                    $this->backend->delete($this->file);
-                    $this->backend->containerDelete($this->file);
-                    return $this->response->withStatus(410);
+        if ($this->extExpress && $singlePartUpload) {
+            // Single part uploads
+            if ($this->backend->store($this->file, $this->stream)) {
+                $localSize = $contentLength;
+            } else {
+                $localSize = 0; // Some error happened while trying to store the file, the client will upload again
+            }
+        } else {
+            $this->backend->append($this->file, $this->stream);
+            $localSize = $this->backend->getSize($this->file);
+
+            // Detect when the upload is complete
+            $cache = $this->backend->containerFetch($this->file);
+            if ($cache->length <= $localSize) {
+                // Extension Thunder TUS CrossCheck: verify if the uploaded file is as expected or delete it
+                if ($this->extCrossCheck && $this->backend->supportsCrossCheck()) {
+                    if (!$this->backend->crossCheck($this->file, $cache->checksum->algorithm, $cache->checksum->value)) {
+                        $this->backend->delete($this->file);
+                        $this->backend->containerDelete($this->file);
+                        return $this->response->withStatus(410);
+                    }
                 }
             }
         }
