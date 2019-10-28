@@ -180,5 +180,5 @@ We've only provided the PSR HTTP request and response implementations on the con
 
 ## Client Implementations
 
-- **PHP Client**: At the `examples` directory you may find a simple client implementation and tus-crosscheck / tus-express examples as well;
-- **JavaScript / ES6**: https://github.com/stenas/thunder-tus-js-client - a very well tested tus-crosscheck / tus-express capable client with minimal footprint.
+- **PHP Client**: At the `examples` directory you may find a simple client and tus-crosscheck / tus-express examples as well;
+- **JavaScript / ES6**: https://github.com/stenas/thunder-tus-js-client - a very well designed and implemented tus-crosscheck / tus-express capable client with minimal footprint.
