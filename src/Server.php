@@ -343,7 +343,7 @@ class Server
         $localChecksum = base64_encode(hash_final($hashContext, true));
         if ($localChecksum !== $checksum->value) {
             return $this->response->withStatus(460, "Checksum Mismatch")
-                ->withHeader("Upload-Offset", $fsize);
+                ->withHeader("Upload-Offset", $singlePartUpload ? 0 : $fsize);
         }
         rewind($this->stream);
 
